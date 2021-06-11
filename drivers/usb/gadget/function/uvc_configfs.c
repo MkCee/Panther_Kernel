@@ -543,7 +543,6 @@ static int uvcg_control_class_allow_link(struct config_item *src,
 unlock:
 	mutex_unlock(&opts->lock);
 out:
-	config_item_put(header);
 	mutex_unlock(su_mutex);
 	return ret;
 }
@@ -585,7 +584,6 @@ static int uvcg_control_class_drop_link(struct config_item *src,
 unlock:
 	mutex_unlock(&opts->lock);
 out:
-	config_item_put(header);
 	mutex_unlock(su_mutex);
 	return ret;
 }
@@ -779,7 +777,6 @@ static int uvcg_streaming_header_allow_link(struct config_item *src,
 	format_ptr->fmt = target_fmt;
 	list_add_tail(&format_ptr->entry, &src_hdr->formats);
 	++src_hdr->num_fmt;
-	++target_fmt->linked;
 
 out:
 	mutex_unlock(&opts->lock);
@@ -817,8 +814,6 @@ static int uvcg_streaming_header_drop_link(struct config_item *src,
 			--src_hdr->num_fmt;
 			break;
 		}
-
-	--target_fmt->linked;
 
 out:
 	mutex_unlock(&opts->lock);
@@ -2221,12 +2216,12 @@ static int __uvcg_cnt_strm(void *priv1, void *priv2, void *priv3, int n,
 			struct uvc_frame_uncompressed uf =
 				frm->frame.uf;
 			*size +=
-			UVC_DT_FRAME_UNCOMPRESSED_SIZE(uf.bFrameIntervalType);
+                        UVC_DT_FRAME_MJPEG_SIZE(mf.bFrameIntervalType);
 		} else if (frm->fmt_type == UVCG_MJPEG) {
 			struct uvc_frame_mjpeg mf =
 				frm->frame.mf;
 			*size +=
-			UVC_DT_FRAME_MJPEG_SIZE(mf.bFrameIntervalType);
+                        UVC_DT_FRAME_H264_SIZE(hf.bNumFrameIntervals);
 		} else if (frm->fmt_type == UVCG_H264) {
 			struct uvc_frame_h264 hf =
 				frm->frame.hf;
@@ -2430,7 +2425,6 @@ static int uvcg_streaming_class_allow_link(struct config_item *src,
 unlock:
 	mutex_unlock(&opts->lock);
 out:
-	config_item_put(header);
 	mutex_unlock(su_mutex);
 	return ret;
 }
@@ -2475,7 +2469,6 @@ static int uvcg_streaming_class_drop_link(struct config_item *src,
 unlock:
 	mutex_unlock(&opts->lock);
 out:
-	config_item_put(header);
 	mutex_unlock(su_mutex);
 	return ret;
 }

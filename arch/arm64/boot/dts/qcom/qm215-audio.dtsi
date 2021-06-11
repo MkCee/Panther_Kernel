@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -50,8 +50,8 @@
 		qcom,msm-ext-pa = "primary";
 		qcom,msm-mclk-freq = <9600000>;
 		qcom,msm-mbhc-hphl-swh = <1>;
-		qcom,msm-mbhc-gnd-swh = <1>;
-		qcom,msm-hs-micbias-type = "external";
+		qcom,msm-mbhc-gnd-swh = <0>;
+		qcom,msm-hs-micbias-type = "internal";
 		qcom,msm-micbias1-ext-cap;
 
 		qcom,audio-routing =
@@ -61,10 +61,10 @@
 				"RX_I2S_CLK", "MCLK",
 				"TX_I2S_CLK", "MCLK",
 				"MIC BIAS External", "Handset Mic",
-				"MIC BIAS External2", "Headset Mic",
+				"MIC BIAS Internal2", "Headset Mic",
 				"MIC BIAS External", "Secondary Mic",
 				"AMIC1", "MIC BIAS External",
-				"AMIC2", "MIC BIAS External2",
+				"AMIC2", "MIC BIAS Internal2",
 				"AMIC3", "MIC BIAS External",
 				"ADC1_IN", "ADC1_OUT",
 				"ADC2_IN", "ADC2_OUT",
@@ -72,6 +72,8 @@
 				"PDM_IN_RX1", "PDM_OUT_RX1",
 				"PDM_IN_RX2", "PDM_OUT_RX2",
 				"PDM_IN_RX3", "PDM_OUT_RX3";
+
+		qcom,msm-spk-ext-pa = <&tlmm 12 0>;
 
 		qcom,pri-mi2s-gpios = <&cdc_pri_mi2s_gpios>;
 		qcom,quin-mi2s-gpios = <&cdc_quin_mi2s_gpios>;
@@ -96,8 +98,7 @@
 			<&afe_pcm_rx>, <&afe_pcm_tx>,
 			<&afe_proxy_rx>, <&afe_proxy_tx>,
 			<&incall_record_rx>, <&incall_record_tx>,
-			<&incall_music_rx>, <&incall_music_2_rx>,
-			<&proxy_rx>, <&proxy_tx>;
+			<&incall_music_rx>, <&incall_music_2_rx>;
 
 		asoc-cpu-names = "msm-dai-q6-auxpcm.1",
 				"msm-dai-q6-mi2s.0", "msm-dai-q6-mi2s.1",
@@ -112,8 +113,7 @@
 				"msm-dai-q6-dev.224", "msm-dai-q6-dev.225",
 				"msm-dai-q6-dev.241", "msm-dai-q6-dev.240",
 				"msm-dai-q6-dev.32771", "msm-dai-q6-dev.32772",
-				"msm-dai-q6-dev.32773", "msm-dai-q6-dev.32770",
-				"msm-dai-q6-dev.8194", "msm-dai-q6-dev.8195";
+				"msm-dai-q6-dev.32773", "msm-dai-q6-dev.32770";
 
 		asoc-codec = <&stub_codec>, <&msm_digital_codec>,
 				<&pmic_analog_codec>;
@@ -179,6 +179,8 @@
 				"ear_cnp_int",
 				"hphr_cnp_int",
 				"hphl_cnp_int";
+		qcom,msm-hs-spk-switch = <&tlmm 126 0>;
+		qcom,msm-hs-spk-enable = <&tlmm 125 0>;
 
 		cdc-vdd-pa-cp-supply = <&pm8916_s4>;
 		qcom,cdc-vdd-pa-cp-voltage = <2050000 2050000>;

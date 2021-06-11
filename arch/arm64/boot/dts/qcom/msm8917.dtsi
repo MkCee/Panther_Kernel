@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -86,7 +86,7 @@
 		modem_mem: modem_region@0 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x86800000 0x0 0x5500000>;
+			reg = <0x0 0x86800000 0x0 0x5000000>;
 		};
 
 		adsp_fw_mem: adsp_fw_region@0 {
@@ -141,12 +141,6 @@
 
 		cont_splash_mem: splash_region@83000000 {
 			reg = <0x0 0x90000000 0x0 0x1400000>;
-		};
-
-		dump_mem: mem_dump_region {
-			compatible = "shared-dma-pool";
-			reusable;
-			size = <0 0x400000>;
 		};
 	};
 
@@ -234,47 +228,6 @@
 	};
 
 	thermal_zones: thermal-zones {};
-
-	mem_dump {
-		compatible = "qcom,mem-dump";
-		memory-region = <&dump_mem>;
-
-		rpm_sw_dump {
-			qcom,dump-size = <0x28000>;
-			qcom,dump-id = <0xea>;
-		};
-
-		pmic_dump {
-			qcom,dump-size = <0x10000>;
-			qcom,dump-id = <0xe4>;
-		};
-
-		vsense_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xe9>;
-		};
-
-		tmc_etf_dump {
-			qcom,dump-size = <0x10000>;
-			qcom,dump-id = <0xf0>;
-		};
-
-		tmc_etr_reg_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0x100>;
-		};
-
-		tmc_etf_reg_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0x101>;
-		};
-
-		misc_data_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xe8>;
-		};
-
-	};
 
 	tsens0: tsens@4a8000 {
 		compatible = "qcom,msm8937-tsens";
@@ -659,7 +612,7 @@
 			<0x7884000 0x1f000>;
 		interrupt-names = "spi_irq", "spi_bam_irq";
 		interrupts = <0 97 0>, <0 238 0>;
-		spi-max-frequency = <50000000>;
+		spi-max-frequency = <19200000>;
 		pinctrl-names = "spi_default", "spi_sleep";
 		pinctrl-0 = <&spi3_default &spi3_cs0_active>;
 		pinctrl-1 = <&spi3_sleep &spi3_cs0_sleep>;
@@ -684,8 +637,12 @@
 		#size-cells = <1>;
 		ranges;
 
-		interrupts = <0 134 0>,<0 140 0>;
-		interrupt-names = "core_irq", "async_irq";
+		/*Start:add OTG phy irq jinzhao 20190918*/
+		//interrupts = <0 134 0>,<0 140 0>;
+		//interrupt-names = "core_irq", "async_irq";
+		interrupts = <0 134 0>,<0 140 0>,<0 136 0>;
+		interrupt-names = "core_irq", "async_irq", "phy_irq";
+		/*End:add OTG phy irq jinzhao 20190918*/
 
 		hsusb_vdd_dig-supply = <&pm8937_l2>;
 		HSUSB_1p8-supply = <&pm8937_l7>;
@@ -827,8 +784,8 @@
 		reg = <0xb017000 0x1000>;
 		reg-names = "wdt-base";
 		interrupts = <0 3 0>, <0 4 0>;
-		qcom,bark-time = <11000>;
-		qcom,pet-time = <10000>;
+		qcom,bark-time = <15000>;
+		qcom,pet-time = <8000>;
 		qcom,ipi-ping;
 		qcom,wakeup-enable;
 	};

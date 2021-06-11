@@ -40,6 +40,10 @@
 #include "qg-battery-profile.h"
 #include "qg-defs.h"
 
+
+static int BAT_ID_OHM = -1;
+static char BAT_ID_STR[50] = {'\0'};
+
 static int qg_debug_mask;
 module_param_named(
 	debug_mask, qg_debug_mask, int, 0600
@@ -1793,9 +1797,6 @@ static int qg_psy_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TIME_TO_FULL_AVG:
 		rc = ttf_get_time_to_full(chip->ttf, &pval->intval);
 		break;
-	case POWER_SUPPLY_PROP_TIME_TO_FULL_NOW:
-		rc = ttf_get_time_to_full(chip->ttf, &pval->intval);
-		break;
 	case POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG:
 		rc = ttf_get_time_to_empty(chip->ttf, &pval->intval);
 		break;
@@ -1863,7 +1864,6 @@ static enum power_supply_property qg_psy_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
-	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG,
 	POWER_SUPPLY_PROP_ESR_ACTUAL,
 	POWER_SUPPLY_PROP_ESR_NOMINAL,
@@ -2257,12 +2257,6 @@ static ssize_t qg_device_read(struct file *file, char __user *buf, size_t count,
 	struct qpnp_qg *chip = file->private_data;
 	unsigned long data_size = sizeof(chip->kdata);
 
-	if (count < data_size) {
-		pr_err("Invalid datasize %lu, expected lesser then %zu\n",
-							data_size, count);
-		return -EINVAL;
-	}
-
 	/* non-blocking access, return */
 	if (!chip->data_ready && (file->f_flags & O_NONBLOCK))
 		return 0;
@@ -2520,6 +2514,13 @@ static int qg_load_battery_profile(struct qpnp_qg *chip)
 		chip->bp.fastchg_curr_ma = -EINVAL;
 	}
 
+//+chk37807 shenwei2.wt, add, 19.11.04, add temp ctrl vrsion
+	#ifdef CONFIG_DISABLE_TEMP_PROTECT
+		chip->bp.float_volt_uv = 4100000;
+		chip->bp.fastchg_curr_ma = 1000;
+	#endif
+//-chk37807 shenwei2.wt, add, 19.11.04, add temp ctrl vrsion
+
 	rc = of_property_read_u32(profile_node, "qcom,qg-batt-profile-ver",
 				&chip->bp.qg_profile_version);
 	if (rc < 0) {
@@ -2537,6 +2538,7 @@ static int qg_load_battery_profile(struct qpnp_qg *chip)
 static int qg_setup_battery(struct qpnp_qg *chip)
 {
 	int rc;
+	int hasValidBatt = 0;
 
 	if (!is_battery_present(chip)) {
 		qg_dbg(chip, QG_DEBUG_PROFILE, "Battery Missing!\n");
@@ -2558,7 +2560,8 @@ static int qg_setup_battery(struct qpnp_qg *chip)
 				chip->soc_reporting_ready = true;
 			} else {
 				chip->profile_loaded = true;
-			}
+				hasValidBatt = 1; 
+                        }
 		}
 	}
 
@@ -2566,8 +2569,49 @@ static int qg_setup_battery(struct qpnp_qg *chip)
 			chip->battery_missing, chip->batt_id_ohm,
 			chip->profile_loaded, chip->bp.batt_type_str);
 
+    /* It assumes that we've got a qualified battery. */
+    if(hasValidBatt){
+        BAT_ID_OHM = (chip->batt_id_ohm)/1000;
+        strcpy(BAT_ID_STR, chip->bp.batt_type_str);
+    }else{
+        BAT_ID_OHM = -1;
+        strcpy(BAT_ID_STR, "NA"); // Battery Missing or Not Qualified Battery.
+    }
+    printk("[BATTERY-INFO] %s \n", BAT_ID_STR);
+
 	return 0;
 }
+
+/* Obtaining which type of the battery the system curretnly has. */
+
+int qg_check_type_of_battery(int ref_id_ohm)
+{
+    int delta = abs(ref_id_ohm - BAT_ID_OHM);
+    int limit = (ref_id_ohm * 15) / 100; // 15% is the deviation.
+    int in_range = (delta <= limit);
+    return in_range;
+}
+EXPORT_SYMBOL(qg_check_type_of_battery);
+
+/* Obtaining a battery type string. */
+void qg_obtain_type_of_battery(char* buff, int max_count)
+{
+    int len = strlen(BAT_ID_STR);
+    if(max_count >= len + 1){
+        if(buff){
+            strncpy(buff, BAT_ID_STR, len);
+            buff[len] = '\0';
+            printk("[BATTERY-INFO-%s] %s \n", __func__, buff);
+        }
+    }
+}
+EXPORT_SYMBOL(qg_obtain_type_of_battery);
+
+bool isBatteryVaild(void)
+{
+    return (BAT_ID_OHM == -1 ? 0 : 1);
+}
+EXPORT_SYMBOL(isBatteryVaild);
 
 static struct ocv_all ocv[] = {
 	[S7_PON_OCV] = { 0, 0, "S7_PON_OCV"},
@@ -2730,6 +2774,12 @@ done:
 	if (rc < 0) {
 		pr_err("Failed to get %s @ PON, rc=%d\n", ocv_type, rc);
 		return rc;
+	}
+
+	if(abs(soc - shutdown[SDAM_SOC]) <= 10) {
+		ocv_uv = shutdown[SDAM_OCV_UV];
+		soc = shutdown[SDAM_SOC];
+		qg_dbg(chip, QG_DEBUG_PON, "WT Using SHUTDOWN_SOC @ PON\n");
 	}
 
 	chip->last_adj_ssoc = chip->catch_up_soc = chip->msoc = soc;

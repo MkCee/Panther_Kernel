@@ -47,6 +47,24 @@ static struct mdss_dsi_data *mdss_dsi_res;
 
 static struct pm_qos_request mdss_dsi_pm_qos_request;
 
+//beging:add lcd hardware info by fangzhihua,20181025
+extern char lcd_info[40];
+void  process_lcd_info(char *lcm_info, const char *panel_name)
+{
+    char* prefix = "qcom,mdss_dsi_";      //for example: mdss_dsi_ili9881c_720p_led_video
+    int plen ,strl =0;
+    plen = strlen(prefix);
+    strl = strlen(panel_name);
+    if(strl>plen)
+    {
+    	strncpy(lcm_info,panel_name+plen,strl-plen);
+	lcm_info[strl-plen] = '\0';
+    }
+    pr_info("%s: lcd_info = %s\n",__func__,lcm_info);
+    return;
+}
+//end:add lcd hardware info by fangzhihua,20181025
+
 void mdss_dump_dsi_debug_bus(u32 bus_dump_flag,
 	u32 **dump_mem)
 {
@@ -393,13 +411,19 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 
 	if (mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
 		pr_debug("reset disable: pinctrl not enabled\n");
-
+	//begin  adjust lid's lcd power off sequence by anhengxuan 2018.10.29
+	msleep(120);
+	//end adjust lid's lcd power off sequence by anhengxuan 2018.10.29
 	ret = msm_mdss_enable_vreg(
 		ctrl_pdata->panel_power_data.vreg_config,
 		ctrl_pdata->panel_power_data.num_vreg, 0);
 	if (ret)
 		pr_err("%s: failed to disable vregs for %s\n",
 			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
+	//add zhubing7 for +-5v power down
+	ocp2131_set_voltage(0,0);
+
+    	//pr_err("fzh1 mdss_dsi_panel_power_off \n");
 
 end:
 	return ret;
@@ -408,6 +432,11 @@ end:
 static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 {
 	int ret = 0;
+#ifdef CONFIG_PROJECT_T89626   
+        char* prefix = "st7703_720p_ski_video";      //add for detect ski st7703 lcd reset timing for T89626，by fangzhihua.wt,2018.12.20
+        char* prefix3 = "st7703_720p_txd_video";      //add for st7703_720p_txd_video reset sequence for T89626，by fangzhihua.wt,2019.1.24
+#endif
+        char* prefix2 = "ili9881d_720p_led_video";      //add for ili9881d-720p-led-video sequence for T89571，by liuchunyang.wt,2019.1.7
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 
 	if (pdata == NULL) {
@@ -427,6 +456,27 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 					__func__);
 	}
 
+#ifdef CONFIG_PROJECT_T89626   
+    if(!strncmp(lcd_info,prefix,19) || !strncmp(lcd_info,prefix3,19))   //strncmp  :  ret 0 means equal. add st7703_720p_txd_video reset sequence,by fangzhihua.wt,2019.1.24
+    {
+    	//pr_err("fzh2 Panel ski st7703 ==0 \n");
+	/*
+	 * If continuous splash screen feature is enabled, then we need to
+	 * request all the GPIOs that have already been configured in the
+	 * bootloader. This needs to be done irresepective of whether
+	 * the lp11_init flag is set or not.
+	 */
+	if (pdata->panel_info.cont_splash_enabled ||
+		!pdata->panel_info.mipi.lp11_init) {
+		if (mdss_dsi_pinctrl_set_state(ctrl_pdata, true))
+			pr_debug("reset enable: pinctrl not enabled\n");
+	    	//pr_err("fzh3 before mdss_dsi_panel_reset \n");
+		ret = mdss_dsi_panel_reset(pdata, 1);
+		if (ret)
+			pr_err("%s: Panel reset failed. rc=%d\n",
+					__func__, ret);
+	}
+	msleep(10);
 	ret = msm_mdss_enable_vreg(
 		ctrl_pdata->panel_power_data.vreg_config,
 		ctrl_pdata->panel_power_data.num_vreg, 1);
@@ -435,7 +485,26 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
 		return ret;
 	}
+    }
+    else
+#endif  
+    {
 
+//add for ili9881d-720p-led-video sequence for T89571，by liuchunyang.wt,2019.1.7
+	if(!strncmp(lcd_info,prefix2,19)){ 
+		msleep(2);
+	}
+//add end for ili9881d-720p-led-video sequence for T89571，by liuchunyang.wt,2019.1.7
+	ret = msm_mdss_enable_vreg(
+		ctrl_pdata->panel_power_data.vreg_config,
+		ctrl_pdata->panel_power_data.num_vreg, 1);
+	if (ret) {
+		pr_err("%s: failed to enable vregs for %s\n",
+			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
+		return ret;
+	}
+	//zhubing7 add for +5v -5v power on
+	ocp2131_set_voltage(LCM_LDO_VOL_6V0,LCM_LDO_VOL_6V0);
 	/*
 	 * If continuous splash screen feature is enabled, then we need to
 	 * request all the GPIOs that have already been configured in the
@@ -452,7 +521,7 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 			pr_err("%s: Panel reset failed. rc=%d\n",
 					__func__, ret);
 	}
-
+    }
 	return ret;
 }
 
@@ -978,7 +1047,7 @@ static ssize_t mdss_dsi_cmd_write(struct file *file, const char __user *p,
 {
 	struct buf_data *pcmds = file->private_data;
 	ssize_t ret = 0;
-	unsigned int blen = 0;
+	int blen = 0;
 	char *string_buf;
 
 	mutex_lock(&pcmds->dbg_mutex);
@@ -990,11 +1059,6 @@ static ssize_t mdss_dsi_cmd_write(struct file *file, const char __user *p,
 
 	/* Allocate memory for the received string */
 	blen = count + (pcmds->sblen);
-	if (blen > U32_MAX - 1) {
-		mutex_unlock(&pcmds->dbg_mutex);
-		return -EINVAL;
-	}
-
 	string_buf = krealloc(pcmds->string_buf, blen + 1, GFP_KERNEL);
 	if (!string_buf) {
 		pr_err("%s: Failed to allocate memory\n", __func__);
@@ -1002,7 +1066,6 @@ static ssize_t mdss_dsi_cmd_write(struct file *file, const char __user *p,
 		return -ENOMEM;
 	}
 
-	pcmds->string_buf = string_buf;
 	/* Writing in batches is possible */
 	ret = simple_write_to_buffer(string_buf, blen, ppos, p, count);
 	if (ret < 0) {
@@ -1012,6 +1075,7 @@ static ssize_t mdss_dsi_cmd_write(struct file *file, const char __user *p,
 	}
 
 	string_buf[ret] = '\0';
+	pcmds->string_buf = string_buf;
 	pcmds->sblen = count;
 	mutex_unlock(&pcmds->dbg_mutex);
 	return ret;
@@ -2931,6 +2995,9 @@ static struct device_node *mdss_dsi_find_panel_of_node(
 	int len, i = 0;
 	int ctrl_id = pdev->id - 1;
 	char panel_name[MDSS_MAX_PANEL_LEN] = "";
+	//beging:add lcd hardware info by fangzhihua,20181025
+	char lcm_info_temp[64] = "0";
+	//end:add lcd hardware info by fangzhihua,20181025
 	char ctrl_id_stream[3] =  "0:";
 	char *str1 = NULL, *str2 = NULL, *override_cfg = NULL;
 	char cfg_np_name[MDSS_MAX_PANEL_LEN] = "";
@@ -3027,6 +3094,11 @@ static struct device_node *mdss_dsi_find_panel_of_node(
 					cfg_np_name, MDSS_MAX_PANEL_LEN);
 			}
 		}
+		//beging:add lcd hardware info by fangzhihua,20181025
+		process_lcd_info(lcm_info_temp, panel_name);
+		pr_info("[LCD] lcm_info  %s\n", lcm_info_temp);
+		strcpy(lcd_info,lcm_info_temp);
+		//end:add lcd hardware info by fangzhihua,20181025
 
 		return dsi_pan_node;
 	}
@@ -3524,10 +3596,6 @@ static int mdss_dsi_parse_dt_params(struct platform_device *pdev,
 	sdata->cmd_clk_ln_recovery_en =
 		of_property_read_bool(pdev->dev.of_node,
 		"qcom,dsi-clk-ln-recovery");
-
-	sdata->skip_clamp =
-		of_property_read_bool(pdev->dev.of_node,
-		"qcom,mdss-skip-clamp");
 
 	return 0;
 }

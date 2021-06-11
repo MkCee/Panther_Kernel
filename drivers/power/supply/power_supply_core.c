@@ -723,6 +723,80 @@ static void psy_unregister_cooler(struct power_supply *psy)
 {
 }
 #endif
+#ifdef CONFIG_PROJECT_T89572
+static ssize_t show_StopCharging_Test(struct device *dev,struct device_attribute *attr, char *buf)
+{
+	/*  Disable charging */
+	union power_supply_propval stop_charging = {0};
+	struct power_supply	*batt_psy =NULL;
+	int rc;
+
+	batt_psy = power_supply_get_by_name("battery");
+	if(batt_psy) {
+		stop_charging.intval = 0;
+		rc = power_supply_set_property(batt_psy,
+				POWER_SUPPLY_PROP_CHARGING_ENABLED, &stop_charging);
+		pr_err("show_StopCharging_Test: suspend=%d, rc=%d\n", stop_charging.intval, rc);
+	} else {
+		pr_err("get battery power supply Error!!\n");
+	}
+	return sprintf(buf, "StopCharging, suspend=%d \n", stop_charging.intval);
+}
+static ssize_t store_StopCharging_Test(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+{
+	return -1;
+}
+static DEVICE_ATTR(StopCharging_Test, 0664, show_StopCharging_Test, store_StopCharging_Test);
+
+static ssize_t show_StartCharging_Test(struct device *dev,struct device_attribute *attr, char *buf)
+{
+	/*  Enable charging */
+	union power_supply_propval start_charging = {0};
+	struct power_supply	*batt_psy =NULL;
+	int rc;
+
+	batt_psy = power_supply_get_by_name("battery");
+	if(batt_psy) {
+		start_charging.intval = 1;
+		rc = power_supply_set_property(batt_psy,
+				POWER_SUPPLY_PROP_CHARGING_ENABLED, &start_charging);
+		pr_err("show_StopCharging_Test: suspend=%d, rc=%d\n", start_charging.intval, rc);
+	} else {
+		pr_err("get battery power supply Error!!\n");
+	}
+	return sprintf(buf, "StartCharging, suspend=%d \n", start_charging.intval);
+}
+static ssize_t store_StartCharging_Test(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+{
+	return -1;
+}
+static DEVICE_ATTR(StartCharging_Test, 0664, show_StartCharging_Test, store_StartCharging_Test);
+static ssize_t show_Board_temp_Test(struct device *dev,struct device_attribute *attr, char *buf)
+{
+	struct thermal_zone_device *thermal_dev;
+	int board_temp = -1;
+	int ret = -1;
+
+	thermal_dev = thermal_zone_get_zone_by_name("pa-therm0-adc");
+	if (thermal_dev == NULL) {
+		pr_err("Joshua: Couldn't get sdm-therm conn_thermtz\n");
+		return ret;
+	}
+
+	ret = thermal_zone_get_temp(thermal_dev, &board_temp);
+	if(ret) {
+		pr_err("Joshua: Couldn't get board temp, rc=%d\n", ret);
+		return ret;
+	}
+
+	return sprintf(buf, "%d \n", board_temp/100);
+}
+static ssize_t store_Board_temp_Test(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+{
+	return -1;
+}
+static DEVICE_ATTR(Board_temp_Test, 0664, show_Board_temp_Test, store_Board_temp_Test);
+#endif
 
 static struct power_supply *__must_check
 __power_supply_register(struct device *parent,
@@ -733,7 +807,9 @@ __power_supply_register(struct device *parent,
 	struct device *dev;
 	struct power_supply *psy;
 	int rc;
-
+	#ifdef CONFIG_PROJECT_T89572
+	int ret_device_file = 0;
+	#endif
 	if (!parent)
 		pr_warn("%s: Expected proper parent device for '%s'\n",
 			__func__, desc->name);
@@ -774,13 +850,13 @@ __power_supply_register(struct device *parent,
 	}
 
 	spin_lock_init(&psy->changed_lock);
-	rc = device_add(dev);
-	if (rc)
-		goto device_add_failed;
-
 	rc = device_init_wakeup(dev, ws);
 	if (rc)
 		goto wakeup_init_failed;
+
+	rc = device_add(dev);
+	if (rc)
+		goto device_add_failed;
 
 	rc = psy_register_thermal(psy);
 	if (rc)
@@ -806,14 +882,23 @@ __power_supply_register(struct device *parent,
 			   &psy->deferred_register_work,
 			   POWER_SUPPLY_DEFERRED_REGISTER_TIME);
 
+	#ifdef CONFIG_PROJECT_T89572
+	if(strcmp(psy->desc->name, "battery") == 0) {
+		pr_err("battery powe supply creat StopCharging_Test and StartCharging_Test  Board_temp _Test attr files!!\n");
+		ret_device_file = device_create_file(dev, &dev_attr_StopCharging_Test);
+		ret_device_file = device_create_file(dev, &dev_attr_StartCharging_Test);
+		ret_device_file = device_create_file(dev, &dev_attr_Board_temp_Test);	
+	}
+	#endif
+
 	return psy;
 
 create_triggers_failed:
 	psy_unregister_thermal(psy);
 register_thermal_failed:
 	device_del(dev);
-wakeup_init_failed:
 device_add_failed:
+wakeup_init_failed:
 check_supplies_failed:
 dev_set_name_failed:
 	put_device(dev);

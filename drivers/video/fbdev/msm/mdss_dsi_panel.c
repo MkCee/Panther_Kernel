@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -425,11 +425,6 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		return rc;
 	}
 
-	if (pinfo->skip_panel_reset && !pinfo->cont_splash_enabled) {
-		pr_debug("%s: skip_panel_reset is set\n", __func__);
-		return 0;
-	}
-
 	pr_debug("%s: enable = %d\n", __func__, enable);
 
 	if (enable) {
@@ -577,13 +572,11 @@ static int mdss_dsi_roi_merge(struct mdss_dsi_ctrl_pdata *ctrl,
 	return ans;
 }
 
-static char pageset[] = {0xfe, 0x00};			/* DTYPE_DCS_WRITE1 */
 static char caset[] = {0x2a, 0x00, 0x00, 0x03, 0x00};	/* DTYPE_DCS_LWRITE */
 static char paset[] = {0x2b, 0x00, 0x00, 0x05, 0x00};	/* DTYPE_DCS_LWRITE */
 
 /* pack into one frame before sent */
 static struct dsi_cmd_desc set_col_page_addr_cmd[] = {
-	{{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(pageset)}, pageset},
 	{{DTYPE_DCS_LWRITE, 0, 0, 0, 1, sizeof(caset)}, caset},	/* packed */
 	{{DTYPE_DCS_LWRITE, 1, 0, 0, 1, sizeof(paset)}, paset},
 };
@@ -593,22 +586,20 @@ static void mdss_dsi_send_col_page_addr(struct mdss_dsi_ctrl_pdata *ctrl,
 {
 	struct dcs_cmd_req cmdreq;
 
-	set_col_page_addr_cmd[0].payload = pageset;
-
 	caset[1] = (((roi->x) & 0xFF00) >> 8);
 	caset[2] = (((roi->x) & 0xFF));
 	caset[3] = (((roi->x - 1 + roi->w) & 0xFF00) >> 8);
 	caset[4] = (((roi->x - 1 + roi->w) & 0xFF));
-	set_col_page_addr_cmd[1].payload = caset;
+	set_col_page_addr_cmd[0].payload = caset;
 
 	paset[1] = (((roi->y) & 0xFF00) >> 8);
 	paset[2] = (((roi->y) & 0xFF));
 	paset[3] = (((roi->y - 1 + roi->h) & 0xFF00) >> 8);
 	paset[4] = (((roi->y - 1 + roi->h) & 0xFF));
-	set_col_page_addr_cmd[2].payload = paset;
+	set_col_page_addr_cmd[1].payload = paset;
 
 	memset(&cmdreq, 0, sizeof(cmdreq));
-	cmdreq.cmds_cnt = 3;
+	cmdreq.cmds_cnt = 2;
 	cmdreq.flags = CMD_REQ_COMMIT;
 	if (unicast)
 		cmdreq.flags |= CMD_REQ_UNICAST;
@@ -824,9 +815,57 @@ static void mdss_dsi_panel_switch_mode(struct mdss_panel_data *pdata,
 		mdss_dsi_panel_dsc_pps_send(ctrl_pdata, &pdata->panel_info);
 }
 
+#ifdef CONFIG_WT_LCD_BOOST_MODE
+static int led_trigger_dim(struct mdss_dsi_ctrl_pdata *ctrl,int from, int to, int div)
+{
+    int i,bklt_diff,lvl;
+    unsigned t=20;
+	
+    if(to == 0)
+    {
+	mdss_dsi_panel_bklt_pwm(ctrl, 0);
+	return 0;
+    }
+    bklt_diff = to-from;
+    if(abs(bklt_diff) < div)
+    {
+	mdss_dsi_panel_bklt_pwm(ctrl, to);
+	return 0;
+    }
+	
+    if(from > to)
+	div = -div;	
+    if((to < ctrl->panel_data.panel_info.bl_min) && (to != 0))
+	to = ctrl->panel_data.panel_info.bl_min;
+    for (i=1; i <= (bklt_diff/div+1); i++)
+    {
+        lvl = from + ( i * div);
+	
+	if ((lvl < to) && (div < 0))
+		lvl = to;
+	if (lvl > ctrl->panel_data.panel_info.bl_max)
+		lvl = ctrl->panel_data.panel_info.bl_max;
+        pr_debug("[Display]<===>lvl[%d]=%d,\n",i,lvl);
+
+	mdss_dsi_panel_bklt_pwm(ctrl, lvl);
+
+	ctrl->bklt_last_level=lvl;
+	//t =abs(bklt_diff*20);
+	t = 200;
+	pr_debug("[Display]t==%d\n",t);
+        mdelay(t);
+    }
+
+    return 0;
+}
+#endif
+
 static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 							u32 bl_level)
 {
+	#ifdef CONFIG_WT_LCD_BOOST_MODE
+	    s32 led_div = 10;
+	#endif
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_dsi_ctrl_pdata *sctrl = NULL;
 
@@ -837,7 +876,7 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
-
+	
 	/*
 	 * Some backlight controllers specify a minimum duty cycle
 	 * for the backlight brightness. If the brightness is less
@@ -846,13 +885,32 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 
 	if ((bl_level < pdata->panel_info.bl_min) && (bl_level != 0))
 		bl_level = pdata->panel_info.bl_min;
+	#ifdef CONFIG_WT_LCD_BOOST_MODE
+		pr_debug("[Display]mdss_dsi_panel_bl_ctrl bl_level=%d,bklt_last_level=%d\n",bl_level,ctrl_pdata->bklt_last_level);
+	#endif
 
 	switch (ctrl_pdata->bklt_ctrl) {
 	case BL_WLED:
 		led_trigger_event(bl_led_trigger, bl_level);
 		break;
 	case BL_PWM:
-		mdss_dsi_panel_bklt_pwm(ctrl_pdata, bl_level);
+		#ifdef CONFIG_WT_LCD_BOOST_MODE
+		//if (ctrl_pdata->bklt_last_level != bl_level) {
+			if ((ctrl_pdata->bklt_last_level == pdata->panel_info.bl_max) || (bl_level == pdata->panel_info.bl_max))
+			{
+			    pr_debug("[Display]come in boost mode level=%d,bklt_last_level=%d\n",bl_level,ctrl_pdata->bklt_last_level);		    
+			    led_div = pdata->panel_info.bl_max / 25;	
+			    led_trigger_dim(ctrl_pdata, ctrl_pdata->bklt_last_level, bl_level, led_div);
+			}
+			else
+			{
+			    mdss_dsi_panel_bklt_pwm(ctrl_pdata, bl_level);
+			    ctrl_pdata->bklt_last_level=bl_level;
+			}
+		//}
+		#else
+			mdss_dsi_panel_bklt_pwm(ctrl_pdata, bl_level);
+		#endif
 		break;
 	case BL_DCS_CMD:
 		if (!mdss_dsi_sync_wait_enable(ctrl_pdata)) {
@@ -2946,9 +3004,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 
 	pinfo->mipi.force_clk_lane_hs = of_property_read_bool(np,
 		"qcom,mdss-dsi-force-clock-lane-hs");
-
-	pinfo->skip_panel_reset =
-		of_property_read_bool(np, "qcom,mdss-skip-panel-reset");
 
 	rc = mdss_dsi_parse_panel_features(np, ctrl_pdata);
 	if (rc) {

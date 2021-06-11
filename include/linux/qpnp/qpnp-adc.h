@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018, 2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -392,8 +392,6 @@ enum qpnp_adc_channel_scaling_param {
  *          btm parameters for SKUH
  * %SCALE_QRD_SKUT1_BATT_THERM: Conversion to temperature(decidegC) based on
  *          btm parameters for SKUT1
- * %SCALE_QRD_SKUE_BATT_THERM: Conversion to temperature(decidegC) based on
- *          btm parameters for SKUE
  * %SCALE_PMI_CHG_TEMP: Conversion for PMI CHG temp
  * %SCALE_BATT_THERM_TEMP: Conversion to temperature(decidegC) based on btm
  *			parameters.
@@ -426,7 +424,6 @@ enum qpnp_adc_scale_fn_type {
 	SCALE_QRD_SKUH_BATT_THERM,
 	SCALE_NCP_03WF683_THERM,
 	SCALE_QRD_SKUT1_BATT_THERM,
-	SCALE_QRD_SKUE_BATT_THERM,
 	SCALE_PMI_CHG_TEMP = 16,
 	SCALE_BATT_THERM_TEMP,
 	SCALE_CHRG_TEMP,
@@ -438,8 +435,26 @@ enum qpnp_adc_scale_fn_type {
 	SCALE_BATT_THERM_TEMP_PU30,
 	SCALE_BATT_THERM_TEMP_PU400,
 	SCALE_BATT_THERM_TEMP_QRD_215,
+	SCALE_THERM_100K_PULLUP_572,
 	SCALE_NONE,
 };
+
+/**
+ * These below are the definitions of the type of batteries.
+ * TYPE_JIADE_XXX, means its manufacture is JIADE.
+ * TYPE_SUNWODA_XXX, means its manufacture is SUNWODA.
+ */
+enum qpnp_type_of_battery {
+    BAT_TYPE_SUNWODA_3000MA = 51, /* The value is its bat_id_ohm. */
+    BAT_TYPE_JIADE_3000MA = 200,
+    BAT_TYPE_UNKNOWN,
+};
+extern int qg_check_type_of_battery(int ref_id_ohm);
+/* Obtaining a battery type string. */
+extern void qg_obtain_type_of_battery(char* buff, int max_count);
+/* filling in hardwareinfo. */
+extern int hardwareinfo_set_prop(int cmd, const char *name);
+extern bool isBatteryVaild(void);
 
 /**
  * enum qpnp_adc_tm_rscale_fn_type - Scaling function used to convert the
@@ -1690,23 +1705,6 @@ int32_t qpnp_adc_scale_qrd_skut1_batt_therm(struct qpnp_vadc_chip *dev,
 			const struct qpnp_vadc_chan_properties *chan_prop,
 			struct qpnp_vadc_result *chan_rslt);
 /**
- * qpnp_adc_scale_qrd_skue_batt_therm() - Scales the pre-calibrated digital
- *		output of an ADC to the ADC reference and compensates for the
- *		gain and offset. Returns the temperature in decidegC.
- * @dev:	Structure device for qpnp vadc
- * @adc_code:	pre-calibrated digital output of the ADC.
- * @adc_prop:	adc properties of the pm8xxx adc such as bit resolution,
- *		reference voltage.
- * @chan_prop:	individual channel properties to compensate the i/p scaling,
- *		slope and offset.
- * @chan_rslt:	physical result to be stored.
- */
-int32_t qpnp_adc_scale_qrd_skue_batt_therm(struct qpnp_vadc_chip *dev,
-			int32_t adc_code,
-			const struct qpnp_adc_properties *adc_prop,
-			const struct qpnp_vadc_chan_properties *chan_prop,
-			struct qpnp_vadc_result *chan_rslt);
-/**
  * qpnp_adc_scale_smb_batt_therm() - Scales the pre-calibrated digital output
  *		of an ADC to the ADC reference and compensates for the
  *		gain and offset. Returns the temperature in decidegC.
@@ -1792,6 +1790,26 @@ int32_t qpnp_adc_scale_therm_pu2(struct qpnp_vadc_chip *dev, int32_t adc_code,
 			const struct qpnp_adc_properties *adc_prop,
 			const struct qpnp_vadc_chan_properties *chan_prop,
 			struct qpnp_vadc_result *chan_rslt);
+
+/**
+ * qpnp_adc_scale_therm_572() - Scales the pre-calibrated digital output
+ *             of an ADC to the ADC reference and compensates for the
+ *             gain and offset. Returns the temperature of the therm in degC.
+ *             It uses a mapping table computed for a 100K pull-up.
+ *             Pull-up2 is an internal pull-up on the AMUX of 100K.
+ * @dev:       Structure device for qpnp vadc
+ * @adc_code:  pre-calibrated digital output of the ADC.
+ * @adc_prop:  adc properties of the pm8xxx adc such as bit resolution,
+ *             reference voltage.
+ * @chan_prop: individual channel properties to compensate the i/p scaling,
+ *             slope and offset.
+ * @chan_rslt: physical result to be stored.
+ */
+int32_t qpnp_adc_scale_therm_572(struct qpnp_vadc_chip *dev, int32_t adc_code,
+                       const struct qpnp_adc_properties *adc_prop,
+                       const struct qpnp_vadc_chan_properties *chan_prop,
+                       struct qpnp_vadc_result *chan_rslt);
+
 /**
  * qpnp_adc_scale_therm_ncp03() - Scales the pre-calibrated digital output
  *		of an ADC to the ADC reference and compensates for the
@@ -2264,12 +2282,6 @@ static inline int32_t qpnp_adc_scale_qrd_skut1_batt_therm(
 			const struct qpnp_vadc_chan_properties *chan_prop,
 			struct qpnp_vadc_result *chan_rslt)
 { return -ENXIO; }
-static inline int32_t qpnp_adc_scale_qrd_skue_batt_therm(
-			struct qpnp_vadc_chip *vdev, int32_t adc_code,
-			const struct qpnp_adc_properties *adc_prop,
-			const struct qpnp_vadc_chan_properties *chan_prop,
-			struct qpnp_vadc_result *chan_rslt)
-{ return -ENXIO; }
 static inline int32_t qpnp_adc_scale_smb_batt_therm(struct qpnp_vadc_chip *vadc,
 			int32_t adc_code,
 			const struct qpnp_adc_properties *adc_prop,
@@ -2299,6 +2311,12 @@ static inline int32_t qpnp_adc_scale_therm_pu2(struct qpnp_vadc_chip *vadc,
 			const struct qpnp_adc_properties *adc_prop,
 			const struct qpnp_vadc_chan_properties *chan_prop,
 			struct qpnp_vadc_result *chan_rslt)
+{ return -ENXIO; }
+static inline int32_t qpnp_adc_scale_therm_572(struct qpnp_vadc_chip *vadc,
+                       int32_t adc_code,
+                       const struct qpnp_adc_properties *adc_prop,
+                       const struct qpnp_vadc_chan_properties *chan_prop,
+                       struct qpnp_vadc_result *chan_rslt)
 { return -ENXIO; }
 static inline int32_t qpnp_adc_scale_therm_ncp03(struct qpnp_vadc_chip *vadc,
 			int32_t adc_code,
