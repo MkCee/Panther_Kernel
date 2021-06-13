@@ -1,10 +1,6 @@
 VERSION = 4
 PATCHLEVEL = 9
-<<<<<<< HEAD
-SUBLEVEL = 186
-=======
-SUBLEVEL = 230
->>>>>>> 18d01340562c6ce0ad58817d445bad4a795037b0
+SUBLEVEL = 240
 EXTRAVERSION =
 NAME = Roaring Lionus
 
@@ -517,7 +513,7 @@ ifeq ($(shell $(srctree)/scripts/clang-android.sh $(CC) $(CLANG_FLAGS)), y)
 $(error "Clang with Android --target detected. Did you specify CLANG_TRIPLE?")
 endif
 GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE)elfedit))
-CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)
+CLANG_FLAGS	+= --prefix=$(GCC_TOOLCHAIN_DIR)$(notdir $(CROSS_COMPILE))
 GCC_TOOLCHAIN	:= $(realpath $(GCC_TOOLCHAIN_DIR)/..)
 endif
 ifneq ($(GCC_TOOLCHAIN),)
