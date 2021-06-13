@@ -407,6 +407,17 @@ static int l2tp_session_add_to_tunnel(struct l2tp_tunnel *tunnel,
 			if (session_walk->session_id == session->session_id)
 				goto exist_glob;
 
+		/* IP encap expects session IDs to be globally unique, while
+		 * UDP encap doesn't.
+		 */
+		hlist_for_each_entry(session_walk, g_head, global_hlist)
+			if (session_walk->session_id == session->session_id &&
+			    (session_walk->tunnel->encap == L2TP_ENCAPTYPE_IP ||
+			     tunnel->encap == L2TP_ENCAPTYPE_IP)) {
+				err = -EEXIST;
+				goto err_tlock_pnlock;
+			}
+
 		hlist_add_head_rcu(&session->global_hlist, g_head);
 		spin_unlock_bh(&pn->l2tp_session_hlist_lock);
 	}
