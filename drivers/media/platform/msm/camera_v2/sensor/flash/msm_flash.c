@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2018, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2009-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -17,6 +17,7 @@
 #include <linux/of_gpio.h>
 #include <linux/leds-qpnp-flash.h>
 #include "msm_flash.h"
+#include "msm_camera_io_util.h"
 #include "msm_camera_dt_util.h"
 #include "msm_cci.h"
 

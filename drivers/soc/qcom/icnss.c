@@ -78,6 +78,7 @@ module_param(qmi_timeout, ulong, 0600);
 #define ICNSS_MAX_PROBE_CNT		2
 
 #define PROBE_TIMEOUT			15000
+#define PROBE_TIMEOUT			5000
 
 #define icnss_ipc_log_string(_x...) do {				\
 	if (icnss_ipc_log_context)					\
@@ -2390,16 +2391,20 @@ static int icnss_pd_restart_complete(struct icnss_priv *priv)
 
 	icnss_hw_power_on(priv);
 
+	icnss_block_shutdown(true);
+
 	ret = priv->ops->reinit(&priv->pdev->dev);
 	if (ret < 0) {
 		icnss_pr_err("Driver reinit failed: %d, state: 0x%lx\n",
 			     ret, priv->state);
 		if (!priv->allow_recursive_recovery)
 			ICNSS_ASSERT(false);
+		icnss_block_shutdown(false);
 		goto out_power_off;
 	}
 
 out:
+	icnss_block_shutdown(false);
 	clear_bit(ICNSS_SHUTDOWN_DONE, &penv->state);
 	return 0;
 
@@ -2928,6 +2933,11 @@ static int icnss_modem_notifier_nb(struct notifier_block *nb,
 		if (!wait_for_completion_timeout(&priv->unblock_shutdown,
 				msecs_to_jiffies(PROBE_TIMEOUT)))
 			icnss_pr_err("modem block shutdown timeout\n");
+	if (code == SUBSYS_BEFORE_SHUTDOWN && !notif->crashed &&
+	    test_bit(ICNSS_BLOCK_SHUTDOWN, &priv->state)) {
+		if (!wait_for_completion_timeout(&priv->unblock_shutdown,
+						 PROBE_TIMEOUT))
+			icnss_pr_err("wlan driver probe timeout\n");
 	}
 
 	if (test_bit(ICNSS_PDR_REGISTERED, &priv->state)) {

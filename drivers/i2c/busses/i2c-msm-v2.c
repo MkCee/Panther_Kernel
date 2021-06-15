@@ -2329,6 +2329,15 @@ i2c_msm_frmwrk_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 		dev_err(ctrl->dev,
 		"Error on msgs Accessing invalid message pointer or message buffer\n");
 		return -EINVAL;
+	if (num < 1) {
+		dev_err(ctrl->dev,
+		"error on number of msgs(%d) received\n", num);
+		return -EINVAL;
+	}
+
+	if (IS_ERR_OR_NULL(msgs)) {
+		dev_err(ctrl->dev, " error on msgs Accessing invalid  pointer location\n");
+		return PTR_ERR(msgs);
 	}
 
 	/* if system is suspended just bail out */

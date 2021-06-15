@@ -1562,6 +1562,7 @@ int smblib_get_prop_batt_status(struct smb_charger *chg,
 	 * continue reporting charging status as FULL.
 	 */
 	if (is_client_vote_enabled_locked(chg->usb_icl_votable,
+	if (is_client_vote_enabled(chg->usb_icl_votable,
 						CHG_TERMINATION_VOTER)) {
 		val->intval = POWER_SUPPLY_STATUS_FULL;
 		return 0;

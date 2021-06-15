@@ -30,7 +30,6 @@
 #include "sd_ops.h"
 
 #define DEFAULT_CMD6_TIMEOUT_MS	500
-#define MIN_CACHE_EN_TIMEOUT_MS 1600
 
 //bug484447 - Add flash info, lizerong, 20190917
 extern char emmc_info[20];
@@ -624,6 +623,8 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 
 		/* check whether the eMMC card supports BKOPS */
 		if ((ext_csd[EXT_CSD_BKOPS_SUPPORT] & 0x1) &&
+		if (!mmc_card_broken_hpi(card) &&
+		    (ext_csd[EXT_CSD_BKOPS_SUPPORT] & 0x1) &&
 				card->ext_csd.hpi) {
 			card->ext_csd.bkops = 1;
 			card->ext_csd.bkops_en = ext_csd[EXT_CSD_BKOPS_EN];
@@ -2270,11 +2271,9 @@ reinit:
 		if (err) {
 			pr_warn("%s: Enabling HPI failed\n",
 				mmc_hostname(card->host));
-			card->ext_csd.hpi_en = 0;
 			err = 0;
-		} else {
+		} else
 			card->ext_csd.hpi_en = 1;
-		}
 	}
 
 	/*
@@ -2283,6 +2282,8 @@ reinit:
 	 * reported to need ~800 ms timeout, while enabling the cache after
 	 * sudden power failure tests. Let's extend the timeout to a minimum of
 	 * DEFAULT_CACHE_EN_TIMEOUT_MS and do it for all cards.
+	 * If cache size is higher than 0, this indicates
+	 * the existence of cache and it can be turned on.
 	 * If HPI is not supported then cache shouldn't be enabled.
 	 */
 	if (card->ext_csd.cache_size > 0) {

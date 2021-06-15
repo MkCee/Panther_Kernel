@@ -421,6 +421,10 @@ struct snd_dec_pcm {
 struct snd_dec_amrwb_plus {
 	__u32 bit_stream_fmt;
 };
+struct snd_dec_amrwb_plus {
+	__u32 bit_stream_fmt;
+};
+
 union snd_codec_options {
 	struct snd_enc_wma wma;
 	struct snd_enc_vorbis vorbis;

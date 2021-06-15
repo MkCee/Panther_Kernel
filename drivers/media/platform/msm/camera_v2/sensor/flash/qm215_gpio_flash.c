@@ -1,4 +1,7 @@
 /*program is free software; you can redistribute it and/or modify
+/* Copyright (c) 2019, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
  * only version 2 as published by the Free Software Foundation.
  *
@@ -57,12 +60,14 @@ static int32_t qm215_flash_low(
 			GPIO_OUT_HIGH,
 			gpio_num_info->gpio_num[SENSOR_GPIO_FL_EN],
 			GPIO_OUT_LOW); //2019.11.2 JLQ modify for flash
+			GPIO_OUT_HIGH);
 		gpio_set_value_cansleep(
 			gpio_num_info->gpio_num[SENSOR_GPIO_FL_NOW],
 			GPIO_OUT_HIGH);
 		gpio_set_value_cansleep(
 			gpio_num_info->gpio_num[SENSOR_GPIO_FL_EN],
 			GPIO_OUT_LOW);  //2019.11.2 JLQ modify for flash
+			GPIO_OUT_HIGH);
 	}
 	CDBG("Exit\n");
 	return 0;
@@ -239,13 +244,13 @@ static const struct file_operations flashlight_fops = {
 	.compat_ioctl = NULL,
 #endif
 };
-
 static int32_t qm215_flash_platform_probe(struct platform_device *pdev)
 {
 	int32_t rc = 0;
 	struct msm_flash_ctrl_t *flash_ctrl = NULL;
 	struct msm_camera_power_ctrl_t *power_info = NULL;
 	struct msm_camera_gpio_conf *gpio_conf = NULL;
+
 	if (!pdev->dev.of_node) {
 		pr_err("of_node NULL\n");
 		return -EINVAL;

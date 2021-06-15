@@ -460,6 +460,7 @@ static int __qseecom_scm_call2_locked(uint32_t smc_id, struct scm_desc *desc)
 	return ret;
 }
 */
+
 static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			const void *req_buf, void *resp_buf)
 {
@@ -489,6 +490,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 		}
 		ret = scm_call2(smc_id, &desc);
 		//ret = __qseecom_scm_call2_locked(smc_id, &desc);
+		ret = __qseecom_scm_call2_locked(smc_id, &desc);
 		break;
 	}
 	case SCM_SVC_ES: {
@@ -513,6 +515,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			desc.args[2] = SHA256_DIGEST_LENGTH;
 			ret = scm_call2(smc_id, &desc);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			kzfree(tzbuf);
 			break;
 		}
@@ -549,6 +552,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			ret = scm_call2(smc_id, &desc);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_APP_SHUTDOWN_COMMAND: {
@@ -580,6 +584,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			ret = scm_call2(smc_id, &desc);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			kzfree(tzbuf);
 			break;
 		}
@@ -605,6 +610,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			ret = scm_call2(smc_id, &desc);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_LOAD_SERV_IMAGE_COMMAND: {
@@ -630,6 +636,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			ret = scm_call2(smc_id, &desc);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_UNLOAD_SERV_IMAGE_COMMAND: {
@@ -638,6 +645,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			ret = scm_call2(smc_id, &desc);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_REGISTER_LISTENER: {
@@ -664,12 +672,14 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			smc_id = TZ_OS_REGISTER_LISTENER_SMCINVOKE_ID;
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			if (ret == -EIO) {
 				/* smcinvoke is not supported */
 				qseecom.smcinvoke_support = false;
 				smc_id = TZ_OS_REGISTER_LISTENER_ID;
 				//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 				ret = scm_call2(smc_id, &desc);
+				ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			}
 			break;
 		}
@@ -683,6 +693,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			desc.args[0] = req->listener_id;
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_LISTENER_DATA_RSP_COMMAND: {
@@ -697,6 +708,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			desc.args[1] = req->status;
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_LISTENER_DATA_RSP_COMMAND_WHITELIST: {
@@ -726,6 +738,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_LOAD_EXTERNAL_ELF_COMMAND: {
@@ -749,6 +762,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_UNLOAD_EXTERNAL_ELF_COMMAND: {
@@ -757,6 +771,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 			}
 
@@ -786,6 +801,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_CLIENT_SEND_DATA_COMMAND_WHITELIST: {
@@ -819,6 +835,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_RPMB_PROVISION_KEY_COMMAND: {
@@ -832,6 +849,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_RPMB_ERASE_COMMAND: {
@@ -840,6 +858,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_RPMB_CHECK_PROV_STATUS_COMMAND: {
@@ -848,6 +867,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_GENERATE_KEY: {
@@ -870,6 +890,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			kzfree(tzbuf);
 			break;
 		}
@@ -893,6 +914,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			kzfree(tzbuf);
 			break;
 		}
@@ -916,6 +938,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			kzfree(tzbuf);
 			break;
 		}
@@ -939,6 +962,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			__qseecom_reentrancy_check_if_no_app_blocked(smc_id);
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			kzfree(tzbuf);
 			break;
 		}
@@ -966,6 +990,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_TEE_OPEN_SESSION_WHITELIST: {
@@ -997,6 +1022,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_TEE_INVOKE_COMMAND: {
@@ -1023,6 +1049,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_TEE_INVOKE_COMMAND_WHITELIST: {
@@ -1054,6 +1081,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_TEE_CLOSE_SESSION: {
@@ -1080,6 +1108,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_TEE_REQUEST_CANCELLATION: {
@@ -1107,6 +1136,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			}
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		case QSEOS_CONTINUE_BLOCKED_REQ_COMMAND: {
@@ -1123,6 +1153,7 @@ static int qseecom_scm_call2(uint32_t svc_id, uint32_t tz_cmd_id,
 			desc.args[0] = req->app_or_session_id;
 			//ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			ret = scm_call2(smc_id, &desc);
+			ret = __qseecom_scm_call2_locked(smc_id, &desc);
 			break;
 		}
 		default: {
@@ -1271,6 +1302,8 @@ static int qseecom_register_listener(struct qseecom_dev_handle *data,
 			rcvd_lstnr.sb_size))
 		return -EFAULT;
 
+	data->listener.id = rcvd_lstnr.listener_id;
+
 	ptr_svc = __qseecom_find_svc(rcvd_lstnr.listener_id);
 	if (ptr_svc) {
 		if (ptr_svc->unregister_pending == false) {
@@ -1320,6 +1353,7 @@ static int qseecom_register_listener(struct qseecom_dev_handle *data,
 
 	data->listener.id = rcvd_lstnr.listener_id;
 	pr_debug("Service %d is registered\n", rcvd_lstnr.listener_id);
+	pr_warn("Service %d is registered\n", rcvd_lstnr.listener_id);
 	return ret;
 }
 
@@ -1379,6 +1413,7 @@ exit:
 
 	data->released = true;
 	pr_debug("Service %d is unregistered\n", data->listener.id);
+	pr_warn("Service %d is unregistered\n", data->listener.id);
 	return ret;
 }
 
@@ -1391,7 +1426,7 @@ static int qseecom_unregister_listener(struct qseecom_dev_handle *data)
 		pr_err("Don't unregister lsnr %d\n", data->listener.id);
 		return -EINVAL;
 	}
-
+	
 	ptr_svc = __qseecom_find_svc(data->listener.id);
 	if (!ptr_svc) {
 		pr_err("Unregiser invalid listener ID %d\n", data->listener.id);
@@ -2810,6 +2845,7 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data,
 	bool found_app = false;
 	bool found_dead_app = false;
 	bool doublecheck = false;
+	bool scm_called = false;
 
 	if (!data) {
 		pr_err("Invalid/uninitialized device handle\n");
@@ -2870,6 +2906,34 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data,
 				(void *)data->client.app_name))) {
 				doublecheck = true;
 				break;
+		/* SCM_CALL to unload the app */
+		ret = qseecom_scm_call(SCM_SVC_TZSCHEDULER, 1, &req,
+				sizeof(struct qseecom_unload_app_ireq),
+				&resp, sizeof(resp));
+		scm_called = true;
+		if (ret) {
+			pr_err("scm_call to unload app (id = %d) failed\n",
+								req.app_id);
+			ret = -EFAULT;
+			goto scm_exit;
+		} else {
+			pr_warn("App id %d now unloaded\n", req.app_id);
+		}
+		if (resp.result == QSEOS_RESULT_FAILURE) {
+			pr_err("app (%d) unload_failed!!\n",
+					data->client.app_id);
+			ret = -EFAULT;
+			goto scm_exit;
+		}
+		if (resp.result == QSEOS_RESULT_SUCCESS)
+			pr_debug("App (%d) is unloaded!!\n",
+					data->client.app_id);
+		if (resp.result == QSEOS_RESULT_INCOMPLETE) {
+			ret = __qseecom_process_incomplete_cmd(data, &resp);
+			if (ret) {
+				pr_err("process_incomplete_cmd fail err: %d\n",
+									ret);
+				goto scm_exit;
 			}
 		}
 		spin_unlock_irqrestore(&qseecom.registered_app_list_lock,
@@ -2882,6 +2946,30 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data,
 		}
 	}
 
+scm_exit:
+	if (scm_called) {
+		/* double check if this app_entry still exists */
+		bool doublecheck = false;
+
+		spin_lock_irqsave(&qseecom.registered_app_list_lock, flags1);
+		list_for_each_entry(ptr_app,
+			&qseecom.registered_app_list_head, list) {
+			if ((ptr_app->app_id == data->client.app_id) &&
+				(!strcmp((void *)ptr_app->app_name,
+				(void *)data->client.app_name))) {
+				doublecheck = true;
+				break;
+			}
+		}
+		spin_unlock_irqrestore(&qseecom.registered_app_list_lock,
+								flags1);
+		if (!doublecheck) {
+			pr_warn("app %d(%s) entry is already removed\n",
+				data->client.app_id,
+				(char *)data->client.app_name);
+			found_app = false;
+		}
+	}
 unload_exit:
 	if (found_app) {
 		spin_lock_irqsave(&qseecom.registered_app_list_lock, flags1);
@@ -4207,7 +4295,7 @@ static int qseecom_receive_req(struct qseecom_dev_handle *data)
 		if (wait_event_interruptible(this_lstnr->rcv_req_wq,
 				__qseecom_listener_has_rcvd_req(data,
 				this_lstnr))) {
-			pr_debug("Interrupted: exiting Listener Service = %d\n",
+			pr_warn("Interrupted: exiting Listener Service = %d\n",
 						(uint32_t)data->listener.id);
 			/* woken up for different reason */
 			return -ERESTARTSYS;
@@ -6691,6 +6779,7 @@ static int qseecom_mdtp_cipher_dip(void __user *argp)
 
 		//ret = __qseecom_scm_call2_locked(TZ_MDTP_CIPHER_DIP_ID, &desc);
 		ret = scm_call2(TZ_MDTP_CIPHER_DIP_ID, &desc);
+		ret = __qseecom_scm_call2_locked(TZ_MDTP_CIPHER_DIP_ID, &desc);
 
 		__qseecom_disable_clk(CLK_QSEE);
 
@@ -8132,6 +8221,11 @@ static int qseecom_release(struct inode *inode, struct file *file)
 			data->listener.release_called = true;
 			mutex_unlock(&listener_access_lock);
 			__wakeup_unregister_listener_kthread();
+			free_private_data = false;
+			mutex_lock(&listener_access_lock);
+			ret = qseecom_unregister_listener(data);
+			data->listener.release_called = true;
+			mutex_unlock(&listener_access_lock);
 			break;
 		case QSEECOM_CLIENT_APP:
 			pr_debug("release app %d (%s)\n",
@@ -8157,6 +8251,24 @@ static int qseecom_release(struct inode *inode, struct file *file)
 				data->type);
 			break;
 		}
+	}
+
+	if (qseecom.support_bus_scaling) {
+		mutex_lock(&qsee_bw_mutex);
+		if (data->mode != INACTIVE) {
+			qseecom_unregister_bus_bandwidth_needs(data);
+			if (qseecom.cumulative_mode == INACTIVE) {
+				ret = __qseecom_set_msm_bus_request(INACTIVE);
+				if (ret)
+					pr_err("Fail to scale down bus\n");
+			}
+		}
+		mutex_unlock(&qsee_bw_mutex);
+	} else {
+		if (data->fast_load_enabled == true)
+			qsee_disable_clock_vote(data, CLK_SFPB);
+		if (data->perf_enabled == true)
+			qsee_disable_clock_vote(data, CLK_DFAB);
 	}
 
 	if (free_private_data)
@@ -9000,8 +9112,10 @@ static int qseecom_probe(struct platform_device *pdev)
 	qseecom.send_resp_flag = 0;
 
 	qseecom.qsee_version = QSEEE_VERSION_00;
+	mutex_lock(&app_access_lock);
 	rc = qseecom_scm_call(6, 3, &feature, sizeof(feature),
 		&resp, sizeof(resp));
+	mutex_unlock(&app_access_lock);
 	pr_info("qseecom.qsee_version = 0x%x\n", resp.result);
 	if (rc) {
 		pr_err("Failed to get QSEE version info %d\n", rc);
@@ -9156,9 +9270,11 @@ static int qseecom_probe(struct platform_device *pdev)
 				rc = -EIO;
 				goto exit_deinit_clock;
 			}
+			mutex_lock(&app_access_lock);
 			rc = qseecom_scm_call(SCM_SVC_TZSCHEDULER, 1,
 					cmd_buf, cmd_len,
 					&resp, sizeof(resp));
+			mutex_unlock(&app_access_lock);
 			__qseecom_disable_clk(CLK_QSEE);
 			if (rc || (resp.result != QSEOS_RESULT_SUCCESS)) {
 				pr_err("send secapp reg fail %d resp.res %d\n",

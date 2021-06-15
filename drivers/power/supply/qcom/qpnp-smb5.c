@@ -1841,11 +1841,14 @@ static int smb5_configure_mitigation(struct smb_charger *chg)
 
 	if (chg->hw_connector_mitigation) {
 		chan |= CONN_THM_CHANNEL_EN_BIT;
+		src_cfg |= THERMREG_CONNECTOR_ADC_SRC_EN_BIT;
 	}
 
 	rc = smblib_masked_write(chg, MISC_THERMREG_SRC_CFG_REG,
 			THERMREG_SW_ICL_ADJUST_BIT | THERMREG_DIE_ADC_SRC_EN_BIT
 			| THERMREG_DIE_CMP_SRC_EN_BIT, src_cfg); 
+			| THERMREG_DIE_CMP_SRC_EN_BIT
+			| THERMREG_CONNECTOR_ADC_SRC_EN_BIT, src_cfg);
 	if (rc < 0) {
 		dev_err(chg->dev,
 				"Couldn't configure THERM_SRC reg rc=%d\n", rc);

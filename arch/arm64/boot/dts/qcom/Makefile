@@ -189,7 +189,9 @@ ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 		sxr1130-usbc-external-codec-pm660a-mtp-overlay.dtbo \
 		sxr1130-usbc-mtp-overlay.dtbo \
 		sxr1130-usbc-pm660a-mtp-overlay.dtbo \
-		sxr1130-qrd-overlay.dtbo
+		sxr1130-qrd-overlay.dtbo \
+		sxr1130-qrd-overlay.dtbo \
+		sxr1130-svr-overlay.dtbo \
 
 sdm670-cdp-overlay.dtbo-base := sdm670.dtb
 sdm670-mtp-overlay.dtbo-base := sdm670.dtb
@@ -264,6 +266,7 @@ sxr1130-usbc-external-codec-pm660a-mtp-overlay.dtbo-base := sxr1130.dtb
 sxr1130-usbc-mtp-overlay.dtbo-base := sxr1130.dtb
 sxr1130-usbc-pm660a-mtp-overlay.dtbo-base := sxr1130.dtb
 sxr1130-qrd-overlay.dtbo-base := sxr1130.dtb
+sxr1130-svr-overlay.dtbo-base := sxr1130.dtb
 
 else
 dtb-$(CONFIG_ARCH_SDM670) += sdm670-rumi.dtb \
@@ -335,7 +338,9 @@ dtb-$(CONFIG_ARCH_SDM670) += sdm670-rumi.dtb \
 	sxr1130-usbc-external-codec-pm660a-mtp.dtb \
 	sxr1130-usbc-mtp.dtb \
 	sxr1130-usbc-pm660a-mtp.dtb \
-	sxr1130-qrd.dtb
+	sxr1130-qrd.dtb \
+	sxr1130-qrd.dtb \
+	sxr1130-svr.dtb \
 endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
@@ -396,6 +401,14 @@ dtbo-$(CONFIG_ARCH_SDM429) += sdm429-mtp-overlay.dtbo \
 	sdm429-spyro-qrd-evt-overlay.dtbo \
 	sdm429-spyro-qrd-dvt-overlay.dtbo \
 	sdm429-spyro-qrd-wdp-overlay.dtbo
+
+msm8940-mtp-overlay.dtbo-base := msm8940-pmi8950.dtb \
+	msm8940-pmi8937.dtb \
+	msm8940-pmi8940.dtb
+
+msm8940-cdp-overlay.dtbo-base := msm8940-pmi8950.dtb \
+	msm8940-pmi8937.dtb \
+	msm8940-pmi8940.dtb
 
 msm8940-mtp-overlay.dtbo-base := msm8940-pmi8950.dtb \
 	msm8940-pmi8937.dtb \
@@ -586,6 +599,7 @@ dtb-$(CONFIG_ARCH_QM215) += qm215-qrd-smb1360.dtb
 
 dtb-$(CONFIG_ARCH_MSM8909) += msm8909-pm8916-mtp.dtb \
 	sdw3100-msm8909w-wtp.dtb \
+dtb-$(CONFIG_ARCH_MSM8909) += sdw3100-msm8909w-wtp.dtb \
 	sdw3100-apq8009w-wtp.dtb \
 	sdw3100-apq8009w-alpha.dtb \
 	apq8009-mtp-wcd9326-refboard.dtb \

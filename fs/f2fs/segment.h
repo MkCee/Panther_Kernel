@@ -83,6 +83,7 @@
 
 #define GET_SEGNO(sbi, blk_addr)					\
 	((!__is_valid_data_blkaddr(blk_addr)) ?			\
+	((!is_valid_data_blkaddr(sbi, blk_addr)) ?			\
 	NULL_SEGNO : GET_L2R_SEGNO(FREE_I(sbi),			\
 		GET_SEGNO_FROM_SEG0(sbi, blk_addr)))
 #define BLKS_PER_SEC(sbi)					\
@@ -665,6 +666,10 @@ static inline void verify_fio_blkaddr(struct f2fs_io_info *fio)
 					META_GENERIC : DATA_GENERIC);
 	verify_blkaddr(sbi, fio->new_blkaddr, __is_meta_io(fio) ?
 					META_GENERIC : DATA_GENERIC_ENHANCE);
+	if (__is_meta_io(fio))
+		verify_blkaddr(sbi, blk_addr, META_GENERIC);
+	else
+		verify_blkaddr(sbi, blk_addr, DATA_GENERIC);
 }
 
 /*

@@ -1151,6 +1151,7 @@ static int ext4_block_write_begin(struct page *page, loff_t pos, unsigned len,
 		    !buffer_unwritten(bh) &&
 		    (block_start < from || block_end > to)) {
 			decrypt = IS_ENCRYPTED(inode) &&
+			decrypt = ext4_encrypted_inode(inode) &&
 				S_ISREG(inode->i_mode) &&
 				!fscrypt_using_hardware_encryption(inode);
 			ll_rw_block(REQ_OP_READ, (decrypt ? REQ_NOENCRYPT : 0),
@@ -3824,6 +3825,7 @@ static int __ext4_block_zero_page_range(handle_t *handle,
 		err = -EIO;
 		decrypt = S_ISREG(inode->i_mode) &&
 			IS_ENCRYPTED(inode) &&
+			ext4_encrypted_inode(inode) &&
 			!fscrypt_using_hardware_encryption(inode);
 		ll_rw_block(REQ_OP_READ, (decrypt ? REQ_NOENCRYPT : 0), 1, &bh);
 		wait_on_buffer(bh);

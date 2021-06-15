@@ -83,6 +83,15 @@
 		qcom,fg-delta-soc = <1>;
 		qcom,thermistor-c1-coeff = <0x85b8>;	
 		qcom,usb-id-gpio = <&pm8916_gpios 4 0>;
+		qcom,iterm-ma = <100>;
+		qcom,recharge-thresh-mv = <100>;
+		qcom,thermal-mitigation = <1500 700 600 0>;
+		qcom,fg-batt-capacity-mah = <2800>;
+		qcom,fg-cutoff-voltage-mv = <3400>;
+		qcom,fg-iterm-ma = <130>;
+		qcom,fg-delta-soc = <1>;
+		qcom,usb-id-gpio = <&pm8916_gpios 4 0>;
+		qcom,soft-jeita-supported;
 		qcom,warm-bat-decidegc = <450>;
 		qcom,cool-bat-decidegc = <150>;
 		qcom,warm-bat-mv = <4200>;
@@ -98,6 +107,7 @@
 		smb1360_vbus: qcom,smb1360-vbus {
 				regulator-name = "qcom,smb1360-vbus";
 		};
+		status= "okay";
 	};
 };
 

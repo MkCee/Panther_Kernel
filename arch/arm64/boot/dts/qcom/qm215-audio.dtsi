@@ -13,6 +13,10 @@
 
 #include "msm-audio-lpass.dtsi"
 
+&voice {
+	qcom,vote-bms;
+};
+
 &msm_audio_ion {
 	iommus = <&apps_iommu 0x2001 0x0>;
 	qcom,smmu-sid-mask = /bits/ 64 <0xf>;
@@ -52,6 +56,8 @@
 		qcom,msm-mbhc-hphl-swh = <1>;
 		qcom,msm-mbhc-gnd-swh = <0>;
 		qcom,msm-hs-micbias-type = "internal";
+		qcom,msm-mbhc-gnd-swh = <1>;
+		qcom,msm-hs-micbias-type = "external";
 		qcom,msm-micbias1-ext-cap;
 
 		qcom,audio-routing =
@@ -65,6 +71,10 @@
 				"MIC BIAS External", "Secondary Mic",
 				"AMIC1", "MIC BIAS External",
 				"AMIC2", "MIC BIAS Internal2",
+				"MIC BIAS External2", "Headset Mic",
+				"MIC BIAS External", "Secondary Mic",
+				"AMIC1", "MIC BIAS External",
+				"AMIC2", "MIC BIAS External2",
 				"AMIC3", "MIC BIAS External",
 				"ADC1_IN", "ADC1_OUT",
 				"ADC2_IN", "ADC2_OUT",

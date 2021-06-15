@@ -2372,6 +2372,7 @@ sd_read_write_protect_flag(struct scsi_disk *sdkp, unsigned char *buffer)
 				  "Mode Sense: %02x %02x %02x %02x\n",
 				  buffer[0], buffer[1], buffer[2], buffer[3]);
 		}
+		set_disk_ro(sdkp->disk, sdkp->write_prot);
 	}
 }
 
@@ -2860,6 +2861,18 @@ static int sd_revalidate_disk(struct gendisk *disk)
 		rw_max = q->limits.io_opt =
 						sdkp->opt_xfer_blocks * sdp->sector_size;
 	} else
+	/*
+	 * Determine the device's preferred I/O size for reads and writes
+	 * unless the reported value is unreasonably small, large, or
+	 * garbage.
+	 */
+	if (sdkp->opt_xfer_blocks &&
+	    sdkp->opt_xfer_blocks <= dev_max &&
+	    sdkp->opt_xfer_blocks <= SD_DEF_XFER_BLOCKS &&
+	    sdkp->opt_xfer_blocks * sdp->sector_size >= PAGE_SIZE)
+		rw_max = q->limits.io_opt =
+			sdkp->opt_xfer_blocks * sdp->sector_size;
+	else
 		rw_max = min_not_zero(logical_to_sectors(sdp, dev_max),
 				      (sector_t)BLK_DEF_MAX_SECTORS);
 

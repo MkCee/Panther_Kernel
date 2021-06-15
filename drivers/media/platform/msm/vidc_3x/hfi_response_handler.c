@@ -1103,6 +1103,8 @@ static enum vidc_status hfi_parse_init_done_properties(
 		if (rem_bytes > next_offset) {
 			rem_bytes -= next_offset;
 			data_ptr += next_offset;
+		rem_bytes -= next_offset;
+		data_ptr += next_offset;
 		} else {
 			rem_bytes = 0;
 		}
@@ -1128,6 +1130,7 @@ enum vidc_status hfi_process_sys_init_done_prop_read(
 	}
 	if (pkt->size < sizeof(struct hfi_msg_sys_init_done_packet)) {
 		dprintk(VIDC_ERR, "%s: bad packet size: %d\n",
+		dprintk(VIDC_ERR, "%s: bad_packet_size: %d\n",
 			__func__, pkt->size);
 		return VIDC_ERR_FAIL;
 	}

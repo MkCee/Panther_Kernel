@@ -274,6 +274,8 @@ static int recover_inode(struct inode *inode, struct page *page)
 	f2fs_set_inode_flags(inode);
 	F2FS_I(inode)->i_gc_failures[GC_FAILURE_PIN] =
 				le16_to_cpu(raw->i_gc_failures);
+	F2FS_I(inode)->i_gc_failures =
+			le16_to_cpu(raw->i_gc_failures);
 
 	recover_inline_flags(inode, raw);
 
@@ -334,6 +336,8 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 				err = f2fs_recover_inode_page(sbi, page);
 				if (err) {
 					f2fs_put_page(page, 1);
+				err = recover_inode_page(sbi, page);
+				if (err)
 					break;
 				}
 				quota_inode = true;

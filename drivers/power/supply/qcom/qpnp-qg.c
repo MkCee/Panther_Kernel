@@ -2257,6 +2257,12 @@ static ssize_t qg_device_read(struct file *file, char __user *buf, size_t count,
 	struct qpnp_qg *chip = file->private_data;
 	unsigned long data_size = sizeof(chip->kdata);
 
+	if (count < data_size) {
+		pr_err("Invalid datasize %lu, expected lesser then %zu\n",
+							data_size, count);
+		return -EINVAL;
+	}
+
 	/* non-blocking access, return */
 	if (!chip->data_ready && (file->f_flags & O_NONBLOCK))
 		return 0;
@@ -2695,6 +2701,18 @@ static int qg_determine_pon_soc(struct qpnp_qg *chip)
 	if (!is_between(0, chip->dt.shutdown_temp_diff,
 			abs(shutdown[SDAM_TEMP] -  batt_temp)))
 		goto use_pon_ocv;
+
+	if ((chip->dt.shutdown_soc_threshold != -EINVAL) &&
+			!is_between(0, chip->dt.shutdown_soc_threshold,
+			abs(pon_soc - shutdown[SDAM_SOC])))
+		goto use_pon_ocv;
+
+	use_pon_ocv = false;
+	ocv_uv = shutdown[SDAM_OCV_UV];
+	soc = shutdown[SDAM_SOC];
+	strlcpy(ocv_type, "SHUTDOWN_SOC", 20);
+	qg_dbg(chip, QG_DEBUG_PON, "Using SHUTDOWN_SOC @ PON\n");
+
 
 	if ((chip->dt.shutdown_soc_threshold != -EINVAL) &&
 			!is_between(0, chip->dt.shutdown_soc_threshold,

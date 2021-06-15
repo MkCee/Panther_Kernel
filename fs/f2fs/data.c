@@ -512,6 +512,7 @@ int f2fs_submit_page_bio(struct f2fs_io_info *fio)
 	if (fio->io_wbc && !is_read_io(fio->op))
 		wbc_account_io(fio->io_wbc, page, PAGE_SIZE);
 
+	fio->op_flags |= fio->encrypted_page ? REQ_NOENCRYPT : 0;
 	bio_set_op_attrs(bio, fio->op, fio->op_flags);
 
 	inc_page_count(fio->sbi, is_read_io(fio->op) ?
@@ -552,6 +553,9 @@ next:
 	}
 
 	verify_fio_blkaddr(fio);
+	if (__is_valid_data_blkaddr(fio->old_blkaddr))
+		verify_block_addr(fio, fio->old_blkaddr);
+	verify_block_addr(fio, fio->new_blkaddr);
 
 	bio_page = fio->encrypted_page ? fio->encrypted_page : fio->page;
 	fio->op_flags |= fio->encrypted_page ? REQ_NOENCRYPT : 0;
@@ -622,6 +626,9 @@ static struct bio *f2fs_grab_read_bio(struct inode *inode, block_t blkaddr,
 	struct bio_post_read_ctx *ctx;
 	unsigned int post_read_steps = 0;
 
+	if (!f2fs_is_valid_blkaddr(sbi, blkaddr, DATA_GENERIC))
+		return ERR_PTR(-EFAULT);
+
 	bio = f2fs_bio_alloc(sbi, min_t(int, nr_pages, BIO_MAX_PAGES), false);
 	if (!bio)
 		return ERR_PTR(-ENOMEM);
@@ -631,6 +638,9 @@ static struct bio *f2fs_grab_read_bio(struct inode *inode, block_t blkaddr,
 			 (IS_ENCRYPTED(inode) ?
 			  REQ_NOENCRYPT :
 			  op_flag));
+			 (f2fs_encrypted_inode(inode) ?
+			  REQ_NOENCRYPT :
+			  0));
 
         if (f2fs_encrypted_file(inode) &&
             !fscrypt_using_hardware_encryption(inode))
@@ -1752,6 +1762,35 @@ static int f2fs_mpage_readpages(struct address_space *mapping,
 			SetPageError(page);
 			zero_user_segment(page, 0, PAGE_SIZE);
 			unlock_page(page);
+			goto next_page;
+		}
+
+		/*
+		 * This page will go to BIO.  Do we need to send this
+		 * BIO off first?
+		 */
+		if (bio && (last_block_in_bio != block_nr - 1 ||
+			!__same_bdev(F2FS_I_SB(inode), block_nr, bio))) {
+submit_and_realloc:
+			__submit_bio(F2FS_I_SB(inode), bio, DATA);
+			bio = NULL;
+		}
+
+		dun = PG_DUN(inode, page);
+		bio_encrypted = f2fs_may_encrypt_bio(inode, NULL);
+		if (!fscrypt_mergeable_bio(bio, dun, bio_encrypted, 0)) {
+			__submit_bio(F2FS_I_SB(inode), bio, DATA);
+			bio = NULL;
+		}
+
+		if (bio == NULL) {
+			bio = f2fs_grab_read_bio(inode, block_nr, nr_pages);
+			if (IS_ERR(bio)) {
+				bio = NULL;
+				goto set_error_page;
+			}
+			if (bio_encrypted)
+				fscrypt_set_ice_dun(inode, bio, dun);
 		}
 
 next_page:
@@ -1919,6 +1958,10 @@ static inline bool need_inplace_update(struct f2fs_io_info *fio)
 }
 
 int f2fs_do_write_data_page(struct f2fs_io_info *fio)
+	return should_update_inplace(inode, fio);
+}
+
+int do_write_data_page(struct f2fs_io_info *fio)
 {
 	struct page *page = fio->page;
 	struct inode *inode = page->mapping->host;
@@ -1935,6 +1978,7 @@ int f2fs_do_write_data_page(struct f2fs_io_info *fio)
 
 		if (!f2fs_is_valid_blkaddr(fio->sbi, fio->old_blkaddr,
 						DATA_GENERIC_ENHANCE))
+							DATA_GENERIC))
 			return -EFAULT;
 
 		ipu_force = true;
@@ -1962,6 +2006,7 @@ got_it:
 	if (__is_valid_data_blkaddr(fio->old_blkaddr) &&
 		!f2fs_is_valid_blkaddr(fio->sbi, fio->old_blkaddr,
 						DATA_GENERIC_ENHANCE)) {
+							DATA_GENERIC)) {
 		err = -EFAULT;
 		goto out_writepage;
 	}
@@ -1971,6 +2016,7 @@ got_it:
 	 */
 	if (ipu_force ||
 		(__is_valid_data_blkaddr(fio->old_blkaddr) &&
+	if (ipu_force || (is_valid_data_blkaddr(fio->sbi, fio->old_blkaddr) &&
 					need_inplace_update(fio))) {
 		err = encrypt_one_page(fio);
 		if (err)

@@ -700,6 +700,8 @@ static void bgrsb_enable_rsb(struct work_struct *work)
 	if (dev->bgrsb_current_state != BGRSB_STATE_RSB_CONFIGURED) {
 		pr_err("BG is not yet configured for RSB\n");
 		dev->pending_enable = true;
+	if (dev->bgrsb_current_state != BGRSB_STATE_RSB_CONFIGURED) {
+		pr_err("BG is not yet configured for RSB\n");
 		goto unlock;
 	}
 
@@ -766,6 +768,9 @@ static void bgrsb_calibration(struct work_struct *work)
 	if (!dev->is_cnfgrd) {
 		pr_err("RSB is not configured\n");
 		goto unlock;
+	if (!dev->is_cnfgrd) {
+		pr_err("RSB is not configured\n");
+		return;
 	}
 
 	req.cmd_id = 0x03;
@@ -804,6 +809,9 @@ static void bgrsb_buttn_configration(struct work_struct *work)
 	if (!dev->is_cnfgrd) {
 		pr_err("RSB is not configured\n");
 		goto unlock;
+	if (!dev->is_cnfgrd) {
+		pr_err("RSB is not configured\n");
+		return;
 	}
 
 	req.cmd_id = 0x05;

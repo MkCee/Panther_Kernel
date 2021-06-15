@@ -2261,6 +2261,7 @@ static int qpnp_lcdb_parse_dt(struct qpnp_lcdb *lcdb)
 	}
 
 	return 0;
+	return rc;
 }
 
 static ssize_t qpnp_lcdb_irq_control(struct class *c,
